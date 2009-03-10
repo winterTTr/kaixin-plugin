@@ -60,12 +60,48 @@ class PageFriendsList(wx.Panel):
     def SetDataManager( self , lm ):
         self.list_ctrl.SetListManager( lm )
 
+class PageAutoAction(wx.Panel):
+    def __init__( self  ,parent ):
+        wx.Panel.__init__( self , parent )
+
+        # sizer
+        main_box = wx.BoxSizer( wx.HORIZONTAL )
+        left_box = wx.BoxSizer( wx.VERTICAL )
+
+        interval_box = wx.BoxSizer( wx.HORIZONTAL )
+        self.static_interval = wx.StaticText( self , wx.ID_ANY , u"间隔"  , size = ( 40 , 20 ) )
+        self.edit_interval = wx.TextCtrl( self , wx.ID_ANY , size = ( 200 , 20 ) )
+        interval_box.Add( self.static_interval , 0  , wx.ALIGN_LEFT | wx.ALIGN_TOP )
+        interval_box.Add(  ( 50 , -1 ) )
+        interval_box.Add( self.edit_interval , 1 , wx.ALIGN_LEFT | wx.ALIGN_TOP )
+
+        button_box = wx.BoxSizer( wx.HORIZONTAL )
+        self.button_start = wx.Button( self , wx.ID_ANY , u"执行" )
+        self.button_stop = wx.Button( self , wx.ID_ANY , u"停止" )
+        button_box.Add( (200 , -1 )  )
+        button_box.Add( self.button_start , 0 , wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM  )
+        button_box.Add( ( 10 , -1 )  )
+        button_box.Add( self.button_stop , 0 , wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM  )
+
+        self.edit_log = wx.TextCtrl( self , wx.ID_ANY , style = wx.TE_MULTILINE )
+        self.edit_log.SetBackgroundColour( '#ededed' )
+
+        left_box.Add( interval_box , 1 , wx.TOP | wx.LEFT   , 10)
+        left_box.Add( button_box , 1 , wx.BOTTOM | wx.RIGHT   , 10)
+
+        main_box.Add( left_box , 1 , wx.ALL | wx.EXPAND , 10 )
+        main_box.Add( self.edit_log , 1 , wx.ALL | wx.EXPAND, 10 )
+
+        self.SetSizer( main_box )
+
+
 class CropsListFrame( wx.Frame ):
     def __init__( self  ):
         wx.Frame.__init__( 
                 self , 
                 parent = None , 
                 id = -1 , 
+                style = wx.CAPTION | wx.CLOSE_BOX | wx.SYSTEM_MENU, 
                 title = u'开心菜园外挂 by winterTTr' ,
                 size = ( 800 , 600 ) )
 
@@ -74,10 +110,11 @@ class CropsListFrame( wx.Frame ):
         self.panel = wx.Panel( self )
         self.notebook = wx.Notebook( self.panel )
         self.page_friendslist = PageFriendsList( self.notebook )
+        self.page_auto_action = PageAutoAction( self.notebook )
 
         # setup item
         self.notebook.AddPage( self.page_friendslist , u"好友设置")
-        #self.notebook.AddPage( PageFriendsList( self.notebook ) , u"自动执行")
+        self.notebook.AddPage( self.page_auto_action , u"执行")
 
         # arrange item
         self.sizer = wx.BoxSizer()
