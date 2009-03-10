@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-	__version__ = '$Revision$'[11:-2]
+	__version__ = '$Revision$'
 	__author__ = 'winterTTr<winterTTr@gmail.com>'
 	__svnid__ = '$Id$'
 -->
@@ -32,8 +32,11 @@
 		</request>
 		<request>
 			<name>Verify</name>
-			<url>http://www.kaixin001.com/home/</url>
-			<params></params>
+            <url>http://www.kaixin001.com/app/app.php</url>
+            <params>
+                <aid>1062</aid>
+                <url>garden/index.php</url>
+            </params>
 			<method>GET</method>
 		</request>
 		<request>

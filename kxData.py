@@ -4,19 +4,16 @@ __version__ = '$Revision$'[11:-2]
 __author__ = 'winterTTr<winterTTr@gmail.com>'
 __svnid__ = '$Id$'
 
-import os
-import sys
-import urllib
-import urllib2
+import os , sys , re
+import urllib , urllib2 , cookielib
 from xml.etree import ElementTree as ET
-import re
 
 global_unicode_convert = re.compile( '\\\\u(?P<uchar>[\da-f]{4})')
 global_friendslist_x = re.compile( r'"uid":(?P<uid>\d+),"real_name":"(?P<real_name>[\\\da-fu]+)","real_name_unsafe":"(?P<real_name_unsafe>[\\\da-fu]+)"' )
 
 def SendRequest( request_name , **kwdict ):
-    global global_config_info
-    request_info = global_config_info.getRequestInfo( request_name , **kwdict )
+    global global_local_config_info
+    request_info = global_local_config_info.getRequestInfo( request_name , **kwdict )
     assert request_info , 'No info for request[%s]' % request_name
 
     if request_info['params'] :
@@ -44,13 +41,70 @@ def UnicodeFromStr( s ):
     global global_unicode_convert
     return global_unicode_convert.sub( ( lambda mo : unichr( int(mo.group('uchar') ,16 ) ) ), s )
 
-class ConfigureInfoLocal:
+class kxFriendsList:
+    __file_name__ = 'friendslist.xml'
+    __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' , 'steal']
+    def __init__( self ):
+        self.flist = []
+        if os.path.exists( self.__file_name__ ):
+            self.LoadFromFile()
+        else:
+            self._getListByRequset()
+            self.UpdateToFile()
+
+    def _getListByRequset( self ):
+        self.flist = []
+        resp = SendRequest( 'FriendsList' )
+        for x in global_friendslist_x.finditer( resp.read() ):
+            self.flist.append( 
+                    [ 
+                        int(x.group('uid') ),  
+                        UnicodeFromStr( x.group('real_name') ) , 
+                        UnicodeFromStr( x.group('real_name_unsafe') ) , 
+                        0  
+                    ])
+
+    def UpdateToFile( self ):
+        root = ET.Element('FriendsList')
+        for x in self.flist:
+            each = ET.SubElement( root , 'person' )
+            ET.SubElement( each , self.__xml_index__[0] ).text = str( x[0] )
+            ET.SubElement( each , self.__xml_index__[1] ).text = x[1]
+            ET.SubElement( each , self.__xml_index__[2] ).text = x[2]
+            ET.SubElement( each , self.__xml_index__[3] ).text = str ( x[3] )
+
+        et = ET.ElementTree( element = root)
+        et.write( self.__file_name__ , encoding='utf-8')
+
+
+    def LoadFromFile( self ):
+        self.flist = []
+        et = ET.ElementTree( file = self.__file_name__ )
+        for x in et.findall( 'person' ):
+            self.flist.append(
+                    [
+                        int( x.find( self.__xml_index__[0] ).text ),
+                        x.find( self.__xml_index__[1] ).text ,
+                        x.find( self.__xml_index__[2] ).text ,
+                        int(  x.find( self.__xml_index__[3] ).text ) 
+                    ] )
+
+    def GetList(self):
+        return self.flist
+
+    def SetSteal( self , id , steal):
+        for x in self.flist:
+            if x[0] == id:
+                x[3] = 1 if steal else 0
+                break
+
+class RequestInfoSet:
     def __init__( self ):
         self.ET = None
         self.request_list = None
         self.attrib_list = None
 
-    def loadFromFile( self , filename ):
+    def loadFromFile( self , filename = 'config.xml' ):
         assert os.path.exists( filename ) , 'there is no config file'
         self.ET = ET.ElementTree( file = filename )
         self.request_list = self.ET.find('request_list')
@@ -101,7 +155,7 @@ class ConfigureInfoLocal:
             result_list.append( x.text )
         return result_list
 
-class ConfigureInfoNetwork :
+class DynamicInfoSet :
     def __init__ ( self ):
         self.verify = ''
 
@@ -116,65 +170,23 @@ class ConfigureInfoNetwork :
         SendRequest( 'Login' , email = email , password = passwd)
 
         # get verify
-        resp = kxData.SendRequest( 'Verify' )
+        resp = SendRequest( 'Verify' )
         content = resp.read()
         self.verify = re.search( 'var g_verify = "(?P<verify>.*)";' , content ).group('verify')
 
+        # getFriends List
+        self.friends_list = kxFriendsList()
+
+
     def logout( self ):
-        kxData.SendRequest( 'Logout' )
+        SendRequest( 'Logout' )
 
 
-global_local_config_info = ConfigureInfoLocal()
-global_network_config_info = ConfigureInfoNetwork()
-
-
-
-class kxFriendsList:
-    __file_name__ = 'friendslist.xml'
-    __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' ]
-    def __init__( self ):
-        self.flist = []
-        if os.path.exists( self.__file_name__ ):
-            self._loadFromFile()
-        else:
-            self._getListByRequset()
-
-    def _getListByRequset( self ):
-        self.flist = []
-        resp = SendRequest( 'FriendsList' )
-        for x in global_friendslist_x.finditer( resp.read() ):
-            self.flist.append( 
-                    [ 
-                        int(x.group('uid') ),  
-                        UnicodeFromStr( x.group('real_name') ) , 
-                        UnicodeFromStr( x.group('real_name_unsafe') )
-                    ])
-        root = ET.Element('FriendsList')
-        for x in self.flist:
-            each = ET.SubElement( root , 'person' )
-            ET.SubElement( each , self.__xml_index__[0] ).text = str( x[0] )
-            ET.SubElement( each , self.__xml_index__[1] ).text = x[1]
-            ET.SubElement( each , self.__xml_index__[2] ).text = x[2]
-
-        et = ET.ElementTree( element = root)
-        et.write( self.__file_name__ , encoding='utf-8')
+global_local_config_info = RequestInfoSet()
+global_network_config_info = DynamicInfoSet()
 
 
 
-    def _loadFromFile( self ):
-        self.flist = []
-        et = ET.ElementTree( file = self.__file_name__ , )
-        for x in et.findall( 'person' ):
-            self.flist.append(
-                    [
-                        int( x.find( __xml_index__[0] ).text ),
-                        x.find( __xml_index__[0] ).text ,
-                        x.find( __xml_index__[1] ).text ,
-                        x.find( __xml_index__[2] ).text 
-                    ] )
-
-    def getList(self):
-        return self.flist
 
 
 
