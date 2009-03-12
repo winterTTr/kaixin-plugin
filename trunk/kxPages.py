@@ -8,6 +8,9 @@ import wx
 import kxData
 import operator
 import re
+from StringIO import StringIO
+from xml.etree import ElementTree as ET
+
 
 class PageGarden(wx.Panel):
     __id_splitter__ = re.compile( r'\[(?P<id>.*)\]')
@@ -200,5 +203,123 @@ class PageGarden(wx.Panel):
 class PageAction( wx.Panel ):
     def __init__( self , parent ):
         wx.Panel.__init__( self , parent )
-        #self._create_items()
+        self._create_items()
+
+        self.Bind( wx.EVT_BUTTON , self.OnStart , self.bnStart )
+        self.Bind( wx.EVT_BUTTON , self.OnStop , self.bnStop )
+
+    def OnStart( self ,event ):
+        self.OutLog( u'开始执行动作。。。' )
+
+        action_list = [ 
+                { 
+                    'name' : u'浇水' , 
+                    'req'  : 'Water' , 
+                    'action_type' : 'water' , 
+                    'check': lambda item_root : item_root.find('water').text != '5' } ,
+
+                { 
+                    'name' : u'除草' , 
+                    'req'  : 'AntiGrass' , 
+                    'action_type' : 'antigrass' , 
+                    'check': lambda item_root : item_root.find('grass').text == '1' } ,
+                { 
+                    'name' : u'除虫' , 
+                    'req'  : 'AntiVermin' , 
+                    'action_type' : 'antivermin' , 
+                    'check': lambda item_root : item_root.find('vermin').text == '1' } ,
+                { 
+                    'name' : u'收获' , 
+                    'req'  : 'Havest' , 
+                    'action_type'  : 'steal' ,
+                    'check': ( 
+                        lambda item_root : 
+                            item_root.find('shared').text != '1' and 
+                            item_root.find('grow').text == x.find('totalgrow').text and
+                            item_root.find('status').text == '1' and
+                            item_root.find('cropsstatus').text != '3' ) } ]
+
+        for action in action_list:
+            user_list = kxData.global_local_config_info['SettingsInfo'].GetGardenUserList(action['action_type'])
+            for id in user_list :
+                user_name = kxData.global_network_operator.friends_list.GetUserName( id )
+                self.OutLog( u'' )
+                self.OutLog( u'取得[%s]家的菜园作物信息' , user_name )
+                resp = kxData.SendRequest( 'CropInfo' , fuid = id )
+                sio = StringIO( resp.read() )
+                sio.seek(0)
+                if sio.getvalue()[0] != '<' :
+                    self.OutLog( u'取得失败'  )
+                    continue
+                else:
+                    self.OutLog( u'取得成功'  )
+
+                for item_root in analyzor.findall('garden/item'):
+                    farmnum = item_root.find('farmnum').text
+                    if action['check']( item_root):
+                        resp = kxData.SendRequest( action['req'] , fuid = id , farmnum = farmnum)
+                        self.OutLog( u'给作物%s%s' % ( farmnum , action['name'] ) )
+                    else:
+                        self.OutLog( u'作物%s不需要%s' % ( farmnum , action['name'] ) )
+
+            #try:
+            #    self.list_ctrl.SetStringItem( 
+            #        item_index , 
+            #        3 , 
+            #        re.sub( r'<font.*>([^<]*)</?font>' , r'\1' ,  x.find('crops').text ) )
+            #except:
+            #    continue
+
+        self.OutLog( u'操作结束' )
+
+    def OnStop( self , event ):
+        self.OutLog( 'stop' )
+
+    def OutLog( self , text ):
+        self.tcLog.AppendText( text + '\n' )
+
+    def _create_items( self ):
+        wx.StaticBox( self , 
+                pos = ( 10 , 10 ) , 
+                label = u"选项" ,
+                size = ( 200 , 520 ) )
+        wx.StaticBox( self , 
+                pos = ( 220 , 10 ) , 
+                label = u"输出" ,
+                size = ( 550 , 520 ) )
+
+        wx.StaticText( self, 
+                label = u"循环间隔(分钟):" , 
+                pos = ( 30 , 80 ) , 
+                size = ( 150 , 20  ) )
+
+        self.cbRedo = wx.CheckBox( self,
+                pos = ( 30 , 30 ) , 
+                label = u"循环执行",
+                size = ( 150 , 20 ) )
+
+        self.tcInterval = wx.TextCtrl( self , 
+                pos = ( 30 , 100 ) , 
+                value = '5' , 
+                size = ( 150 , 20  ))
+
+        self.bnStart = wx.Button( self , 
+                label = u"执行" , 
+                pos = ( 30 , 140 ) , 
+                size = ( 50 , 20 ) )
+
+
+        self.bnStop = wx.Button( self , 
+                label = u"停止" , 
+                pos = ( 120 , 140 ) , 
+                size = ( 50 , 20 ) )
+
+        self.tcLog = wx.TextCtrl( self , 
+                pos = ( 230 , 30 ) , 
+                size = ( 530 , 480 ) , 
+                style = wx.TE_READONLY | wx.TE_MULTILINE )
+        self.tcLog.SetBackgroundColour( "#ededed" )
+
+
+
 
