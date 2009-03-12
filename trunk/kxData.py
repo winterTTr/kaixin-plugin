@@ -4,7 +4,7 @@ __version__ = '$Revision$'[11:-2]
 __author__ = 'winterTTr<winterTTr@gmail.com>'
 __svnid__ = '$Id$'
 
-import os , sys , re
+import os , sys , re , operator
 import urllib , urllib2 , cookielib
 from xml.etree import ElementTree as ET
 
@@ -13,7 +13,7 @@ global_friendslist_x = re.compile( r'"uid":(?P<uid>\d+),"real_name":"(?P<real_na
 
 def SendRequest( request_name , **kwdict ):
     global global_local_config_info
-    request_info = global_local_config_info.getRequestInfo( request_name , **kwdict )
+    request_info = global_local_config_info['RequestInfo'].getRequestInfo( request_name , **kwdict )
     assert request_info , 'No info for request[%s]' % request_name
 
     if request_info['params'] :
@@ -43,7 +43,7 @@ def UnicodeFromStr( s ):
 
 class kxFriendsList:
     __file_name__ = 'friendslist.xml'
-    __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' , 'steal']
+    __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' ]
     def __init__( self ):
         self.flist = []
         if os.path.exists( self.__file_name__ ):
@@ -61,7 +61,6 @@ class kxFriendsList:
                         int(x.group('uid') ),  
                         UnicodeFromStr( x.group('real_name') ) , 
                         UnicodeFromStr( x.group('real_name_unsafe') ) , 
-                        0  
                     ])
 
     def UpdateToFile( self ):
@@ -71,7 +70,6 @@ class kxFriendsList:
             ET.SubElement( each , self.__xml_index__[0] ).text = str( x[0] )
             ET.SubElement( each , self.__xml_index__[1] ).text = x[1]
             ET.SubElement( each , self.__xml_index__[2] ).text = x[2]
-            ET.SubElement( each , self.__xml_index__[3] ).text = str ( x[3] )
 
         et = ET.ElementTree( element = root)
         et.write( self.__file_name__ , encoding='utf-8')
@@ -86,17 +84,11 @@ class kxFriendsList:
                         int( x.find( self.__xml_index__[0] ).text ),
                         x.find( self.__xml_index__[1] ).text ,
                         x.find( self.__xml_index__[2] ).text ,
-                        int(  x.find( self.__xml_index__[3] ).text ) 
                     ] )
 
     def GetList(self):
         return self.flist
 
-    def SetSteal( self , id , steal):
-        for x in self.flist:
-            if x[0] == id:
-                x[3] = 1 if steal else 0
-                break
 
 class RequestInfoSet:
     def __init__( self ):
@@ -104,7 +96,7 @@ class RequestInfoSet:
         self.request_list = None
         self.attrib_list = None
 
-    def loadFromFile( self , filename = 'config.xml' ):
+    def loadFromFile( self , filename = 'request.xml' ):
         assert os.path.exists( filename ) , 'there is no config file'
         self.ET = ET.ElementTree( file = filename )
         self.request_list = self.ET.find('request_list')
@@ -139,7 +131,7 @@ class RequestInfoSet:
                 for x in ch._children :
                     if x.attrib.get('input') == '1':
                         if x.tag == 'verify':
-                            result_dict['params'][x.tag] = global_network_config_info.verify
+                            result_dict['params'][x.tag] = global_network_operator.verify
                         else:
                             result_dict['params'][x.tag] = kwdict[x.tag]
                     else:
@@ -155,7 +147,7 @@ class RequestInfoSet:
             result_list.append( x.text )
         return result_list
 
-class DynamicInfoSet :
+class NetworkOperator :
     def __init__ ( self ):
         self.verify = ''
 
@@ -181,9 +173,60 @@ class DynamicInfoSet :
     def logout( self ):
         SendRequest( 'Logout' )
 
+class SettingsInfoSet:
+    #__garden_tags__ = ['water' , 'antigrass' , 'antivermin' ,'farm' , 'havest' , 'steal']
+    __garden_tags__ = [ 
+            [ u"浇水" , 'water'], 
+            [ u"除草" , 'antigrass'], 
+            [ u"捉虫" , 'antivermin'], 
+            [ u"耕地" , 'farm'],
+            [ u"收获" , 'havest'],
+            [ u"偷菜" , 'steal']]
+    def __init__(self):
+        self.gardenInfo = {}
+        for x in map( operator.itemgetter(1) , self.__garden_tags__ ):
+            self.gardenInfo[x] = {}
+            self.gardenInfo[x]['do'] = 0
+            self.gardenInfo[x]['list'] = []
 
-global_local_config_info = RequestInfoSet()
-global_network_config_info = DynamicInfoSet()
+    def loadFromFile( self , file = 'setting.xml' ):
+        if not os.path.exists( file ):
+            return
+
+        et = ET.ElementTree( file = file )
+        garden_root = et.find('garden')
+
+        # garden section
+        for tag in map( operator.itemgetter(1) , self.__garden_tags__ ):
+            # init
+            self.gardenInfo[tag]['do'] = 0
+            self.gardenInfo[tag]['list'] = []
+            # reading
+            x = garden_root.find(tag)
+            self.gardenInfo[tag]['do'] = int ( x.find('do').text )
+            for each in x.findall('list/id'):
+                self.gardenInfo[tag]['list'].append( int( each.text ) )
+
+    def UpdateToFile( self , file = 'setting.xml' ):
+        root = ET.Element('setting')
+
+        # garden section
+        garden_root = ET.SubElement( root , 'garden' )
+        for x in map( operator.itemgetter(1) , self.__garden_tags__ ):
+            item_root = ET.SubElement( garden_root , x )
+            ET.SubElement( item_root , 'do').text = str( self.gardenInfo[x]['do'] )
+            list_root = ET.SubElement( item_root , 'list' )
+            for each in self.gardenInfo[x]['list']:
+                ET.SubElement( list_root , 'id').text = str( each )
+
+        et = ET.ElementTree( element = root)
+        et.write( file , encoding='utf-8')
+
+global_local_config_info = {
+        'RequestInfo' : RequestInfoSet() ,
+        'SettingsInfo'  : SettingsInfoSet() }
+
+global_network_operator = NetworkOperator()
 
 
 
