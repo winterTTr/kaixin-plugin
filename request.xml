@@ -117,6 +117,18 @@
 				<fuid input='1'></fuid>
 			</params>
 		</request>
+        <request>
+            <name>Water</name>http://www.kaixin001.com/house/garden/water.php
+            <url>http://www.kaixin001.com/house/garden/water.php</url>
+            <params>
+                <r>1</r>
+                <fuid input='1'></fuid>
+                <farmnum input='1'></farmnum>
+                <verify input='1'></verify>
+                <seedid>0</seedid>
+            </params>
+            <method>GET</method>
+        </request>
 	</request_list>
 	<attrib_list>
 		<basic>

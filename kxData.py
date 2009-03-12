@@ -45,7 +45,7 @@ class kxFriendsList:
     __file_name__ = 'friendslist.xml'
     __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' ]
     def __init__( self ):
-        self.flist = []
+        self.flist = [ 0 , u"=自己=" , u"=自己=" ]
         if os.path.exists( self.__file_name__ ):
             self.LoadFromFile()
         else:
@@ -53,7 +53,7 @@ class kxFriendsList:
             self.UpdateToFile()
 
     def _getListByRequset( self ):
-        self.flist = []
+        self.flist = [ 0 , u"=自己=" , u"=自己=" ]
         resp = SendRequest( 'FriendsList' )
         for x in global_friendslist_x.finditer( resp.read() ):
             self.flist.append( 
@@ -76,7 +76,7 @@ class kxFriendsList:
 
 
     def LoadFromFile( self ):
-        self.flist = []
+        self.flist = [ 0 , u"=自己=" , u"=自己=" ]
         et = ET.ElementTree( file = self.__file_name__ )
         for x in et.findall( 'person' ):
             self.flist.append(
@@ -88,6 +88,13 @@ class kxFriendsList:
 
     def GetList(self):
         return self.flist
+
+    def GetUserName ( self , id ):
+        for x in self.flist:
+            if id == x[0] :
+                return x[1]
+
+        return u""
 
 
 class RequestInfoSet:
@@ -168,10 +175,11 @@ class NetworkOperator :
 
         # getFriends List
         self.friends_list = kxFriendsList()
-
+        return True
 
     def logout( self ):
         SendRequest( 'Logout' )
+        return True
 
 class SettingsInfoSet:
     #__garden_tags__ = ['water' , 'antigrass' , 'antivermin' ,'farm' , 'havest' , 'steal']
@@ -221,6 +229,9 @@ class SettingsInfoSet:
 
         et = ET.ElementTree( element = root)
         et.write( file , encoding='utf-8')
+
+    def GetGardenUserList( self , action_type ):
+        return self.gardenInfo[action_type]['list']
 
 global_local_config_info = {
         'RequestInfo' : RequestInfoSet() ,
