@@ -92,6 +92,7 @@
 				<farmnum input='1'></farmnum>
 				<r>1</r>
 			</params>
+            <method>GET</method>
 		</request>
 		<request>
 			<name>AntiGrass</name>

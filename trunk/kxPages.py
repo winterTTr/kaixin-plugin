@@ -205,11 +205,15 @@ class PageAction( wx.Panel ):
         wx.Panel.__init__( self , parent )
         self._create_items()
 
+        self.bnStop.Enable( False )
+
         self.Bind( wx.EVT_BUTTON , self.OnStart , self.bnStart )
         self.Bind( wx.EVT_BUTTON , self.OnStop , self.bnStop )
 
     def OnStart( self ,event ):
-        self.OutLog( u'开始执行动作。。。' )
+        self.bnStart.Enable ( False )
+        self.OutLog( u'\n' )
+        self.OutLog( u'开始执行动作。。。\n' )
 
         action_list = [ 
                 { 
@@ -231,36 +235,56 @@ class PageAction( wx.Panel ):
                 { 
                     'name' : u'收获' , 
                     'req'  : 'Havest' , 
-                    'action_type'  : 'steal' ,
+                    'action_type'  : 'havest' ,
                     'check': ( 
                         lambda item_root : 
                             item_root.find('shared').text != '1' and 
-                            item_root.find('grow').text == x.find('totalgrow').text and
+                            item_root.find('grow').text == item_root.find('totalgrow').text and
                             item_root.find('status').text == '1' and
                             item_root.find('cropsstatus').text != '3' ) } ]
 
         for action in action_list:
-            user_list = kxData.global_local_config_info['SettingsInfo'].GetGardenUserList(action['action_type'])
+            do_action = kxData.global_local_config_info['SettingsInfo'].gardenInfo[action['action_type']]['do']
+            user_list = kxData.global_local_config_info['SettingsInfo'].gardenInfo[action['action_type']]['list']
+            self.OutLog(u'\n')
+            if do_action == 0 :
+                self.OutLog(u'====[%s]未开启===\n' % action['name'])
+                continue
+            else:
+                self.OutLog(u'====开始执行[%s]===\n' % action['name'])
+
+
+            self.OutLog(u'')
             for id in user_list :
                 user_name = kxData.global_network_operator.friends_list.GetUserName( id )
-                self.OutLog( u'' )
-                self.OutLog( u'取得[%s]家的菜园作物信息' , user_name )
+                self.OutLog( u'\n' )
+                self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user_name )
                 resp = kxData.SendRequest( 'CropInfo' , fuid = id )
                 sio = StringIO( resp.read() )
                 sio.seek(0)
                 if sio.getvalue()[0] != '<' :
-                    self.OutLog( u'取得失败'  )
+                    self.OutLog( u'取得失败\n'  )
                     continue
                 else:
-                    self.OutLog( u'取得成功'  )
+                    self.OutLog( u'取得成功\n'  )
+
+                analyzor = ET.ElementTree( file = sio )
 
                 for item_root in analyzor.findall('garden/item'):
                     farmnum = item_root.find('farmnum').text
-                    if action['check']( item_root):
-                        resp = kxData.SendRequest( action['req'] , fuid = id , farmnum = farmnum)
-                        self.OutLog( u'给作物%s%s' % ( farmnum , action['name'] ) )
+                    cropsid = item_root.find('cropsid').text
+                    if cropsid == '0':
+                        #self.OutLog( u'[作物%2s]尚未开发\n' % ( farmnum , ) )
+                        continue
                     else:
-                        self.OutLog( u'作物%s不需要%s' % ( farmnum , action['name'] ) )
+                        if action['check']( item_root):
+                            resp = kxData.SendRequest( action['req'] , fuid = id , farmnum = farmnum)
+                            if isinstance( resp , type({}) ):
+                                self.OutLog( u'给[作物%2s]%s...%s\n' % ( farmnum , action['name'] ,resp['status'] ) )
+                            else:
+                                self.OutLog( u'给[作物%2s]%s\n' % ( farmnum , action['name'] ) )
+                        #else:
+                        #    self.OutLog( u'[作物%2s]不需要%s' % ( farmnum , action['name'] ) )
 
             #try:
             #    self.list_ctrl.SetStringItem( 
@@ -270,13 +294,15 @@ class PageAction( wx.Panel ):
             #except:
             #    continue
 
-        self.OutLog( u'操作结束' )
+        self.OutLog( u'\n' )
+        self.OutLog( u'操作结束\n' )
+        self.bnStart.Enable( True )
 
     def OnStop( self , event ):
         self.OutLog( 'stop' )
 
     def OutLog( self , text ):
-        self.tcLog.AppendText( text + '\n' )
+        self.tcLog.AppendText( text )
 
     def _create_items( self ):
         wx.StaticBox( self , 

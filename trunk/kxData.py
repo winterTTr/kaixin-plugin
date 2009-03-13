@@ -7,6 +7,7 @@ __svnid__ = '$Id$'
 import os , sys , re , operator
 import urllib , urllib2 , cookielib
 from xml.etree import ElementTree as ET
+from kxPacketHandler import kxPacketHandler_map
 
 global_unicode_convert = re.compile( '\\\\u(?P<uchar>[\da-f]{4})')
 global_friendslist_x = re.compile( r'"uid":(?P<uid>\d+),"real_name":"(?P<real_name>[\\\da-fu]+)","real_name_unsafe":"(?P<real_name_unsafe>[\\\da-fu]+)"' )
@@ -33,6 +34,8 @@ def SendRequest( request_name , **kwdict ):
         resp = urllib2.urlopen( url = target_url )
 
     if resp and resp.code == 200:
+        if kxPacketHandler_map.has_key( request_name ):
+            return kxPacketHandler_map[request_name]( resp.read() ).GetResult()
         return resp
 
     return None
@@ -45,7 +48,6 @@ class kxFriendsList:
     __file_name__ = 'friendslist.xml'
     __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' ]
     def __init__( self ):
-        self.flist = [ 0 , u"=自己=" , u"=自己=" ]
         if os.path.exists( self.__file_name__ ):
             self.LoadFromFile()
         else:
@@ -53,7 +55,7 @@ class kxFriendsList:
             self.UpdateToFile()
 
     def _getListByRequset( self ):
-        self.flist = [ 0 , u"=自己=" , u"=自己=" ]
+        self.flist = [ [ 0 , u"=自己=" , u"=自己=" ] ]
         resp = SendRequest( 'FriendsList' )
         for x in global_friendslist_x.finditer( resp.read() ):
             self.flist.append( 
@@ -76,7 +78,7 @@ class kxFriendsList:
 
 
     def LoadFromFile( self ):
-        self.flist = [ 0 , u"=自己=" , u"=自己=" ]
+        self.flist = []
         et = ET.ElementTree( file = self.__file_name__ )
         for x in et.findall( 'person' ):
             self.flist.append(
@@ -187,9 +189,8 @@ class SettingsInfoSet:
             [ u"浇水" , 'water'], 
             [ u"除草" , 'antigrass'], 
             [ u"捉虫" , 'antivermin'], 
-            [ u"耕地" , 'farm'],
-            [ u"收获" , 'havest'],
-            [ u"偷菜" , 'steal']]
+            #[ u"耕地" , 'farm'],
+            [ u"收获/偷菜" , 'havest']]
     def __init__(self):
         self.gardenInfo = {}
         for x in map( operator.itemgetter(1) , self.__garden_tags__ ):
@@ -230,8 +231,6 @@ class SettingsInfoSet:
         et = ET.ElementTree( element = root)
         et.write( file , encoding='utf-8')
 
-    def GetGardenUserList( self , action_type ):
-        return self.gardenInfo[action_type]['list']
 
 global_local_config_info = {
         'RequestInfo' : RequestInfoSet() ,
