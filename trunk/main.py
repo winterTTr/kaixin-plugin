@@ -26,12 +26,12 @@ class KxPluginFrame( wx.Frame ):
         email = wx.GetTextFromUser( 
                 'Email:' , 
                 'Acount Information[Email]' , 
-                'winterTTr@hotmail.com' , 
+                '' , 
                 self)
         passwd = wx.GetPasswordFromUser(
                 'Password:',
                 'Acount Information[Password]',
-                'kaixin1983',
+                '',
                 self)
         if email == '' or passwd == '':
             assert 0 , 'Invalid email or password'
