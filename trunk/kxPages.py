@@ -10,6 +10,7 @@ import operator
 import re
 from StringIO import StringIO
 from xml.etree import ElementTree as ET
+import threading
 
 
 class PageGarden(wx.Panel):
@@ -200,18 +201,35 @@ class PageGarden(wx.Panel):
                 size = ( 90 , 22  ) )
 
 
-class PageAction( wx.Panel ):
-    def __init__( self , parent ):
-        wx.Panel.__init__( self , parent )
-        self._create_items()
+class ThreadDoGarden( threading.Thread ):
+    def __init__( self , panel , if_timer_thread = False ):
+        threading.Thread.__init__( self )
+        self.OutLog = panel.OutLog
+        self.bnStart = panel.bnStart
+        self.bnStop = panel.bnStop
+        self.pool = panel.thread_do_garden
+        self.evtStop = threading.Event()
+        self.evtStop.clear()
+        self.isTimer = if_timer_thread
+        self.cbRedo = panel.cbRedo
+        self.tcInterval = panel.tcInterval
 
-        self.bnStop.Enable( False )
+    def _check_if_exit_thread( self ):
+        if self.evtStop.isSet():
+            self.OutLog( u'\n')
+            self.OutLog( u'用户终止操作\n')
+            if not self.isTimer :
+                self.pool.pop()
 
-        self.Bind( wx.EVT_BUTTON , self.OnStart , self.bnStart )
-        self.Bind( wx.EVT_BUTTON , self.OnStop , self.bnStop )
+            self.bnStart.Enable( True )
+            return True
+        else:
+            return False
 
-    def OnStart( self ,event ):
-        self.bnStart.Enable ( False )
+        
+    def run( self ):
+        self.bnStop.Enable( True )
+
         self.OutLog( u'\n' )
         self.OutLog( u'开始执行动作。。。\n' )
 
@@ -244,6 +262,7 @@ class PageAction( wx.Panel ):
                             item_root.find('cropsstatus').text != '3' ) } ]
 
         for action in action_list:
+            if self._check_if_exit_thread(): return
             do_action = kxData.global_local_config_info['SettingsInfo'].gardenInfo[action['action_type']]['do']
             user_list = kxData.global_local_config_info['SettingsInfo'].gardenInfo[action['action_type']]['list']
             self.OutLog(u'\n')
@@ -256,6 +275,7 @@ class PageAction( wx.Panel ):
 
             self.OutLog(u'')
             for id in user_list :
+                if self._check_if_exit_thread(): return
                 user_name = kxData.global_network_operator.friends_list.GetUserName( id )
                 self.OutLog( u'\n' )
                 self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user_name )
@@ -286,20 +306,93 @@ class PageAction( wx.Panel ):
                         #else:
                         #    self.OutLog( u'[作物%2s]不需要%s' % ( farmnum , action['name'] ) )
 
-            #try:
-            #    self.list_ctrl.SetStringItem( 
-            #        item_index , 
-            #        3 , 
-            #        re.sub( r'<font.*>([^<]*)</?font>' , r'\1' ,  x.find('crops').text ) )
-            #except:
-            #    continue
+        self.OutLog( u'\n')
+        self.OutLog( u'操作结束\n')
+        if not self.isTimer :
+            self.bnStop.Enable( False )
+            self.bnStart.Enable( True )
+            self.cbRedo.Enable(True)
+            self.tcInterval.Enable(True)
+            self.pool.pop()
 
-        self.OutLog( u'\n' )
-        self.OutLog( u'操作结束\n' )
-        self.bnStart.Enable( True )
+    def stop( self ):
+        self.evtStop.set()
+
+
+class ThreadDoGardenTimer( threading.Thread ):
+    def __init__( self , panel ,timer ):
+        threading.Thread.__init__( self )
+
+        self.timer = timer
+        self.evtStop = threading.Event()
+        self.evtStop.clear()
+        self.thread_obj = ThreadDoGarden( panel , True )
+        self.panel = panel
+
+    def run( self ):
+        self.thread_obj.run()
+        while True:
+            self.panel.OutLog(u'\n')
+            self.panel.OutLog( u"等待下次操作\n")
+            self.evtStop.wait( self.timer )
+            if self.evtStop.isSet():
+                self.panel.OutLog(u'\n')
+                self.panel.OutLog(u'用户中止操作\n')
+                self.panel.bnStart.Enable(True)
+                return
+            else:
+                self.thread_obj.run()
+                if self.thread_obj.evtStop.isSet():
+                    return
+
+    def stop( self ):
+        self.thread_obj.evtStop.set()
+        self.evtStop.set()
+        self.panel.thread_do_garden.pop()
+
+
+
+
+
+class PageAction( wx.Panel ):
+    def __init__( self , parent ):
+        wx.Panel.__init__( self , parent )
+        self._create_items()
+        self.bnStop.Enable( False )
+
+        self.Bind( wx.EVT_BUTTON , self.OnStart , self.bnStart )
+        self.Bind( wx.EVT_BUTTON , self.OnStop , self.bnStop )
+
+        self.thread_do_garden = []
+
+    def OnStart( self ,event ):
+        if self.thread_do_garden :
+            return
+
+        interval = self.tcInterval.GetValue()
+        try:
+            interval = int( interval )
+            assert interval > 0 , 'interval little than 0'
+        except:
+            wx.MessageDialog( self, u"请输入有效的间隔值" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
+            return
+
+
+        self.bnStart.Enable(False)
+        self.cbRedo.Enable(False)
+        self.tcInterval.Enable(False)
+        if self.cbRedo.IsChecked():
+            self.thread_do_garden.append(  ThreadDoGardenTimer( self ,  interval * 60 )) 
+        else:
+            self.thread_do_garden.append( ThreadDoGarden( self ) )
+
+        self.thread_do_garden[0].start()
 
     def OnStop( self , event ):
-        self.OutLog( 'stop' )
+        self.bnStop.Enable( False )
+        self.thread_do_garden[0].stop()
+        self.cbRedo.Enable(True)
+        self.tcInterval.Enable(True)
 
     def OutLog( self , text ):
         self.tcLog.AppendText( text )
