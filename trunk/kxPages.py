@@ -273,7 +273,6 @@ class ThreadDoGarden( threading.Thread ):
                 self.OutLog(u'====开始执行[%s]===\n' % action['name'])
 
 
-            self.OutLog(u'')
             for id in user_list :
                 if self._check_if_exit_thread(): return
                 user_name = kxData.global_network_operator.friends_list.GetUserName( id )
@@ -288,7 +287,16 @@ class ThreadDoGarden( threading.Thread ):
                 else:
                     self.OutLog( u'取得成功\n'  )
 
+                #open( '%d.xml' % id , 'w').write( sio.getvalue() )
+
                 analyzor = ET.ElementTree( file = sio )
+
+                #caolaobo = analyzor.find('account/careurl').text
+                #self.OutLog( '%s\n' % caolaobo )
+                find_cailaobo =  ( analyzor.find('account/careurl').text != None )
+                if action['action_type'] == 'havest' and find_cailaobo:
+                    self.OutLog( u'发现菜老伯！！下次再偷 = =||\n')
+                    continue
 
                 for item_root in analyzor.findall('garden/item'):
                     farmnum = item_root.find('farmnum').text

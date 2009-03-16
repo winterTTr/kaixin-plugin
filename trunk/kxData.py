@@ -8,6 +8,7 @@ import os , sys , re , operator
 import urllib , urllib2 , cookielib
 from xml.etree import ElementTree as ET
 from kxPacketHandler import kxPacketHandler_map
+import time
 
 global_unicode_convert = re.compile( '\\\\u(?P<uchar>[\da-f]{4})')
 global_friendslist_x = re.compile( r'"uid":(?P<uid>\d+),"real_name":"(?P<real_name>[\\\da-fu]+)","real_name_unsafe":"(?P<real_name_unsafe>[\\\da-fu]+)"' )
@@ -24,6 +25,7 @@ def SendRequest( request_name , **kwdict ):
 
     resp = None
     if request_info['method'] == 'POST' :
+        time.sleep(1)
         resp = urllib2.urlopen( url = request_info['url'] , data = params )
     elif request_info['method'] == 'GET' :
         if params:
@@ -31,6 +33,7 @@ def SendRequest( request_name , **kwdict ):
         else:
             target_url = request_info['url']
 
+        time.sleep(1)
         resp = urllib2.urlopen( url = target_url )
 
     if resp and resp.code == 200:
@@ -139,10 +142,12 @@ class RequestInfoSet:
                 result_dict['params'] = {}
                 for x in ch._children :
                     if x.attrib.get('input') == '1':
-                        if x.tag == 'verify':
+                        if kwdict.has_key(x.tag):
+                            result_dict['params'][x.tag] = kwdict[x.tag]
+                        elif x.tag == 'verify':
                             result_dict['params'][x.tag] = global_network_operator.verify
                         else:
-                            result_dict['params'][x.tag] = kwdict[x.tag]
+                            assert 0 , 'Key Error!'
                     else:
                         result_dict['params'][x.tag] = x.text
             else:

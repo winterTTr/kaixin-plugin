@@ -130,6 +130,18 @@
             </params>
             <method>GET</method>
         </request>
+		<request>
+			<name>SendMark</name>
+			<url>http://www.kaixin001.com/brain/aj_send_mark.php</url>
+			<params>
+				<verify input='1'></verify>
+				<gamename input='1'></gamename>
+				<mark input='1'></mark>
+				<ac>616b7c8099e5229830792ba17426bdaa</ac>
+				<r>1</r>
+			</params>
+            <method>GET</method>
+		</request>
 	</request_list>
 	<attrib_list>
 		<basic>
