@@ -4,7 +4,7 @@ __version__ = '$Revision$'[11:-2]
 __author__ = 'winterTTr<winterTTr@gmail.com>'
 __svnid__ = '$Id$'
 
-import wx , sys , re
+import wx , sys , re , os
 import kxData
 from StringIO import StringIO
 from xml.etree import ElementTree as ET
@@ -23,18 +23,27 @@ class KxPluginFrame( wx.Frame ):
 
         ### ========== Init Inner Data
         # Get name and passwd
-        email = wx.GetTextFromUser( 
-                'Email:' , 
-                'Acount Information[Email]' , 
-                '' , 
-                self)
-        passwd = wx.GetPasswordFromUser(
-                'Password:',
-                'Acount Information[Password]',
-                '',
-                self)
+        passwd_file = 'passwd.txt'
+        if os.path.exists(passwd_file):
+            lines = open( passwd_file ).readlines()
+            if len( lines ) < 2:
+                wx.MessageDialog( self, u"无效的passwd.txt文件！" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
+                os.exit(1)
+            email , passwd = map( lambda x : x[:-1] if x[-1] == '\n' else x , lines[:2] )
+        else: 
+            email = wx.GetTextFromUser( 
+                    'Email:' , 
+                    'Acount Information[Email]' , 
+                    '' , 
+                    self)
+            passwd = wx.GetPasswordFromUser(
+                    'Password:',
+                    'Acount Information[Password]',
+                    '',
+                    self)
         if email == '' or passwd == '':
-            assert 0 , 'Invalid email or password'
+            wx.MessageDialog( self, u"未输入用户名或者密码！" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
+            os.exit(1)
         ## init configure
         kxData.global_local_config_info['RequestInfo'].loadFromFile()
         kxData.global_local_config_info['SettingsInfo'].loadFromFile()
