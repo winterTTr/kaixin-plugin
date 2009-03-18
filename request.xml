@@ -97,13 +97,13 @@
 		<request>
 			<name>AntiGrass</name>
 			<url>http://www.kaixin001.com/house/garden/antigrass.php</url>
-			<param>
+			<params>
 				<farmnum input='1'></farmnum>
 				<seedid>0</seedid>
 				<verify input='1'></verify>
 				<r>1</r>
 				<fuid input='1'></fuid>
-			</param>
+			</params>
 			<method>POST</method>
 		</request>
 		<request>
