@@ -17,7 +17,7 @@ class KxPluginFrame( wx.Frame ):
                 self , 
                 parent = None , 
                 id = -1 , 
-                style = wx.CAPTION | wx.CLOSE_BOX | wx.SYSTEM_MENU, 
+                style = wx.CAPTION | wx.CLOSE_BOX | wx.SYSTEM_MENU | wx.MINIMIZE_BOX, 
                 title = u'开心网外挂 by winterTTr' ,
                 size = ( 800 , 600 ) )
 
@@ -53,6 +53,13 @@ class KxPluginFrame( wx.Frame ):
 
         ### ========== Init UI
         # create item
+        self.tbicon = wx.TaskBarIcon()
+        icon = wx.Icon("favicon.ico", wx.BITMAP_TYPE_ICO)
+        self.SetIcon( icon )
+        self.tbicon.SetIcon( icon , u'开心网外挂')
+
+
+
         self.panel = wx.Panel( self )
         self.notebook = wx.Notebook( self.panel )
         self.page_garden = PageGarden( self.notebook )
@@ -70,6 +77,8 @@ class KxPluginFrame( wx.Frame ):
 
         #### ========== Bind Event
         self.Bind(wx.EVT_CLOSE, self.on_close)
+        wx.EVT_TASKBAR_LEFT_DCLICK( self.tbicon , self.OnTaskBarDoubleClick )
+        self.Bind( wx.EVT_ICONIZE , self.on_icon )
 
         #### ========== Update UI
         #self.UpdateListInfo()
@@ -77,44 +86,6 @@ class KxPluginFrame( wx.Frame ):
 
     def UpdateListInfo( self ):
         pass
-        #self.page_friendslist.UpdateList()
-        #for f_index in [ [ 0 , u"自己" , u"自己"] ] + self.flist.getList() :
-        ##for f_index in [ [ 4287324 , u"自己" , u"自己"] ] :
-        #    resp = kxData.SendRequest( 'CropInfo' , fuid = f_index[0] , verify = self.verify )
-        #    sio = StringIO( resp.read() )
-        #    sio.seek(0)
-        #    if sio.getvalue()[0] != '<' :
-        #        continue
-        #    analyzor = ET.ElementTree( file = sio )
-        #    sio.close()
-
-        #    item_list = analyzor.findall('garden/item')
-
-        #    for x in item_list:
-        #        if x.find('cropsid').text !='0' :
-        #            if x.find('grow').text == x.find('totalgrow').text :
-        #            #if True:
-        #                if x.find('status').text == '1' and x.find('cropsstatus').text != '3' :
-        #                    item_index = self.list_ctrl.InsertStringItem( sys.maxint , "" )
-        #                    self.list_ctrl.SetStringItem( item_index , 0 ,  unicode( f_index[0] ) )
-        #                    self.list_ctrl.SetStringItem( item_index , 1 , f_index[1]  )
-        #                    self.list_ctrl.SetStringItem( item_index , 2 , x.find('farmnum').text  )
-        #                    try:
-        #                        self.list_ctrl.SetStringItem( 
-        #                            item_index , 
-        #                            3 , 
-        #                            re.sub( r'<font.*>([^<]*)</?font>' , r'\1' ,  x.find('crops').text ) )
-        #                    except:
-        #                        continue
-
-
-        #    #    for i , attrib in enumerate( kxData.global_config_info.getBasicAttribList() ):
-        #    #        self.list_ctrl.SetStringItem( item_index , i , x.find(attrib).text )
-
-        #    #    if x.find( 'cropsid' ).text != '0':
-        #    #        for i1 , attrib in enumerate( kxData.global_config_info.getExtentAttribList() ):
-        #    #            self.list_ctrl.SetStringItem( item_index , i + i1 + 1 , x.find(attrib).text )
-
 
 
     def on_close( self , event ):
@@ -122,7 +93,21 @@ class KxPluginFrame( wx.Frame ):
         kxData.global_local_config_info['SettingsInfo'].UpdateToFile()
         kxData.global_network_operator.friends_list.UpdateToFile()
         kxData.global_network_operator.logout()
+        self.tbicon.Destroy()
         self.Destroy()
+
+    def on_icon( self , event ):
+        if self.IsIconized():
+            self.Hide()
+
+
+
+    def OnTaskBarDoubleClick( self , event ):
+        if self.IsShown():
+            self.Hide()
+        else:
+            self.Show()
+            self.Restore()
 
 
 if __name__ == "__main__":
