@@ -238,18 +238,26 @@ class ThreadDoGarden( threading.Thread ):
                     'name' : u'浇水' , 
                     'req'  : 'Water' , 
                     'action_type' : 'water' , 
-                    'check': lambda item_root : item_root.find('water').text != '5' } ,
-
+                    'check': lambda item_root : item_root.find('water').text != '5' ,
+                    'if_do': kxData.global_local_config_info['SettingsInfo'].gardenInfo['water']['do'] , 
+                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['water']['list'] 
+                } , 
                 { 
                     'name' : u'除草' , 
                     'req'  : 'AntiGrass' , 
                     'action_type' : 'antigrass' , 
-                    'check': lambda item_root : item_root.find('grass').text == '1' } ,
+                    'check': lambda item_root : item_root.find('grass').text == '1' ,
+                    'if_do': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antigrass']['do'] , 
+                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antigrass']['list']
+                } ,
                 { 
                     'name' : u'除虫' , 
                     'req'  : 'AntiVermin' , 
                     'action_type' : 'antivermin' , 
-                    'check': lambda item_root : item_root.find('vermin').text == '1' } ,
+                    'check': lambda item_root : item_root.find('vermin').text == '1' ,
+                    'if_do': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antivermin']['do'] ,
+                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antivermin']['list']
+                },
                 { 
                     'name' : u'收获' , 
                     'req'  : 'Havest' , 
@@ -259,60 +267,66 @@ class ThreadDoGarden( threading.Thread ):
                             item_root.find('shared').text != '1' and 
                             item_root.find('grow').text == item_root.find('totalgrow').text and
                             item_root.find('status').text == '1' and
-                            item_root.find('cropsstatus').text != '3' ) } ]
-
-        for action in action_list:
-            if self._check_if_exit_thread(): return
-            do_action = kxData.global_local_config_info['SettingsInfo'].gardenInfo[action['action_type']]['do']
-            user_list = kxData.global_local_config_info['SettingsInfo'].gardenInfo[action['action_type']]['list']
-            self.OutLog(u'\n')
-            if do_action == 0 :
-                self.OutLog(u'====[%s]未开启===\n' % action['name'])
-                continue
-            else:
-                self.OutLog(u'====开始执行[%s]===\n' % action['name'])
+                            item_root.find('cropsstatus').text != '3' )   ,
+                    'if_do' : kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['do'] ,
+                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['list'] 
+                } ]
 
 
-            for id in user_list :
-                if self._check_if_exit_thread(): return
-                user_name = kxData.global_network_operator.friends_list.GetUserName( id )
-                self.OutLog( u'\n' )
-                self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user_name )
-                resp = kxData.SendRequest( 'CropInfo' , fuid = id )
-                sio = StringIO( resp.read() )
-                sio.seek(0)
-                if sio.getvalue()[0] != '<' :
-                    self.OutLog( u'取得失败\n'  )
+        for user in kxData.global_network_operator.friends_list.GetList():
+            if self._check_if_exit_thread(): return        
+            analyzor = None
+            find_cailaobo = False
+            for action in action_list:
+                if self._check_if_exit_thread(): return        
+
+                #self.OutLog( u'Do action [%s]\n' % action['name'] )
+
+                if action['if_do'] == 0 :
+                    #self.OutLog( u'action [%s] : close\n' % action['name'] )
                     continue
-                else:
-                    self.OutLog( u'取得成功\n'  )
 
-                #open( '%d.xml' % id , 'w').write( sio.getvalue() )
-
-                analyzor = ET.ElementTree( file = sio )
-
-                #caolaobo = analyzor.find('account/careurl').text
-                #self.OutLog( '%s\n' % caolaobo )
-                find_cailaobo =  ( analyzor.find('account/careurl').text != None )
-                if action['action_type'] == 'havest' and find_cailaobo:
-                    self.OutLog( u'发现菜老伯！！下次再偷 = =||\n')
+                if not ( user[0] in action['u_list'] ):
+                    #self.OutLog( u'action [%s] : user no in list\n' % action['name'] )
                     continue
+
+                if analyzor == None :
+                    self.OutLog( u'\n' )
+                    self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user[1] )
+                    resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
+                    sio = StringIO( resp.read() )
+                    sio.seek(0)
+                    if sio.getvalue()[0] != '<' :
+                        self.OutLog( u'取得失败\n'  )
+                        break
+                    else:
+                        self.OutLog( u'取得成功\n'  )
+                        analyzor = ET.ElementTree( file = sio )
+                        find_cailaobo =  ( analyzor.find('account/careurl').text != None )
+
+                if action['action_type'] == 'havest': 
+                    if find_cailaobo:
+                        self.OutLog( u'发现菜老伯！！下次再偷 = =||\n')
+                        continue
+                    #else:
+                    #    self.OutLog( u'没有菜老伯！！安全，安全 *_*\n')
 
                 for item_root in analyzor.findall('garden/item'):
+                    if self._check_if_exit_thread(): return        
                     farmnum = item_root.find('farmnum').text
                     cropsid = item_root.find('cropsid').text
                     if cropsid == '0':
                         #self.OutLog( u'[作物%2s]尚未开发\n' % ( farmnum , ) )
                         continue
-                    else:
-                        if action['check']( item_root):
-                            resp = kxData.SendRequest( action['req'] , fuid = id , farmnum = farmnum)
-                            if isinstance( resp , type({}) ):
-                                self.OutLog( u'给[作物%2s]%s...%s\n' % ( farmnum , action['name'] ,resp['status'] ) )
-                            else:
-                                self.OutLog( u'给[作物%2s]%s\n' % ( farmnum , action['name'] ) )
-                        #else:
-                        #    self.OutLog( u'[作物%2s]不需要%s' % ( farmnum , action['name'] ) )
+                    if action['check']( item_root ):
+                        resp = kxData.SendRequest( action['req'] , fuid = user[0] , farmnum = farmnum)
+                        if isinstance( resp , type({}) ):
+                            self.OutLog( u'给[作物%2s]%s...%s\n' % ( farmnum , action['name'] ,resp['status'] ) )
+                        else:
+                            self.OutLog( u'给[作物%2s]%s\n' % ( farmnum , action['name'] ) )
+                    #else:
+                    #    self.OutLog( u'[作物%2s]不需要%s\n' % ( farmnum , action['name'] ) )
+    
 
         self.OutLog( u'\n')
         self.OutLog( u'操作结束\n')
