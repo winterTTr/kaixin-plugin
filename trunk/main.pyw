@@ -43,7 +43,7 @@ class KxPluginFrame( wx.Frame ):
                     self)
         if email == '' or passwd == '':
             wx.MessageDialog( self, u"未输入用户名或者密码！" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
-            os.exit(1)
+            sys.exit(1)
         ## init configure
         kxData.global_local_config_info['RequestInfo'].loadFromFile()
         kxData.global_local_config_info['SettingsInfo'].loadFromFile()
