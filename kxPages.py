@@ -296,13 +296,14 @@ class ThreadDoGarden( threading.Thread ):
                     resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
                     sio = StringIO( resp.read() )
                     sio.seek(0)
-                    if sio.getvalue()[0] != '<' :
+                    #if sio.getvalue().find( u'他还没有添加本组件'.encode('cp936') ) == -1 :
+                    try:
+                        analyzor = ET.ElementTree( file = sio )
+                        self.OutLog( u'取得成功\n'  )
+                        find_cailaobo =  ( analyzor.find('account/careurl').text != None )
+                    except:
                         self.OutLog( u'取得失败\n'  )
                         break
-                    else:
-                        self.OutLog( u'取得成功\n'  )
-                        analyzor = ET.ElementTree( file = sio )
-                        find_cailaobo =  ( analyzor.find('account/careurl').text != None )
 
                 if action['action_type'] == 'havest': 
                     if find_cailaobo:
