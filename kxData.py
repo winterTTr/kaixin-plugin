@@ -24,17 +24,27 @@ def SendRequest( request_name , **kwdict ):
         params = None
 
     resp = None
-    if request_info['method'] == 'POST' :
-        time.sleep(1)
-        resp = urllib2.urlopen( url = request_info['url'] , data = params )
-    elif request_info['method'] == 'GET' :
-        if params:
-            target_url =  request_info['url'] + '?' + params
-        else:
-            target_url = request_info['url']
+    sleep_time = 1
+    while True:
+        try :
+            if request_info['method'] == 'POST' :
+                time.sleep(sleep_time)
+                resp = urllib2.urlopen( url = request_info['url'] , data = params )
+                break
+            elif request_info['method'] == 'GET' :
+                if params:
+                    target_url =  request_info['url'] + '?' + params
+                else:
+                    target_url = request_info['url']
 
-        time.sleep(1)
-        resp = urllib2.urlopen( url = target_url )
+                time.sleep(sleep_time)
+                resp = urllib2.urlopen( url = target_url )
+                break
+        except urllib2.HttpError , e :
+            open( 'error.txt', 'a' ).write( str(e) )
+            sleep_time = 2
+
+
 
     if resp and resp.code == 200:
         if kxPacketHandler_map.has_key( request_name ):
