@@ -40,7 +40,7 @@ def SendRequest( request_name , **kwdict ):
                 time.sleep(sleep_time)
                 resp = urllib2.urlopen( url = target_url )
                 break
-        except urllib2.HttpError , e :
+        except urllib2.HTTPError , e :
             open( 'error.txt', 'a' ).write( str(e) )
             sleep_time = 2
 
