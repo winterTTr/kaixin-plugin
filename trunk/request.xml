@@ -142,6 +142,16 @@
 			</params>
             <method>GET</method>
 		</request>
+		<request>
+			<name>BuySeed</name>
+			<url>http://www.kaixin001.com/house/garden/buyseed.php</url>
+			<params>
+				<num input='1'></num>
+				<verify input='1'></verify>
+				<seedid input='1'></seedid>
+			</params>
+            <method>GET</method>
+		</request>
 	</request_list>
 	<attrib_list>
 		<basic>
