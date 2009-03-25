@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	__version__ = '$Revision$'
+	__author__ = 'winterTTr<winterTTr@gmail.com>'
+	__svnid__ = '$Id$'
+-->
+<global_conf>
+	<request_list>
+		<request>
+			<name>Login</name>
+			<url>http://www.kaixin001.com/login/login.php</url>
+			<params>
+				<url>/home/</url>
+				<email input='1'></email>
+				<password input='1'></password>
+			</params>
+			<method>POST</method>
+		</request>
+		<request>
+			<name>Logout</name>
+			<url>http://www.kaixin001.com/login/logout.php</url>
+			<params></params>
+			<method>GET</method>
+		</request>
+		<request>
+			<name>FriendsList</name>
+			<url>http://www.kaixin001.com/interface/suggestfriend.php</url>
+			<params>
+				<type>all</type>
+			</params>
+			<method>GET</method>
+		</request>
+		<request>
+			<name>Verify</name>
+            <url>http://www.kaixin001.com/app/app.php</url>
+            <params>
+                <aid>1062</aid>
+                <url>garden/index.php</url>
+            </params>
+			<method>GET</method>
+		</request>
+		<request>
+			<name>CropInfo</name>
+			<url>http://www.kaixin001.com/house/garden/getconf.php</url>
+			<params>
+				<verify input='1'></verify>
+				<fuid input='1'></fuid>
+				<r>1</r>
+			</params>
+			<method>GET</method>
+		</request>
+		<request>
+			<name>Plough</name>
+			<url>http://www.kaixin001.com/house/garden/plough.php</url>
+			<params>
+				<verify input='1'></verify>
+				<seedid>0</seedid>
+				<fuid input='1'></fuid>
+				<farmnum input='1'></farmnum>
+				<r>1</r>
+			</params>
+			<method>GET</method>
+		</request>
+		<request>
+			<name>SeedList</name>
+			<url>http://www.kaixin001.com/house/garden/myseedlist.php</url>
+			<params>
+				<verify input='1'></verify>
+				<page input='1'></page>
+				<r>1</r>
+			</params>
+			<method>GET</method>
+		</request>
+        <request>
+            <name>FarmSeed</name>
+            <url>http://www.kaixin001.com/house/garden/farmseed.php</url>
+            <params>
+				<verify input='1'></verify>
+                <seedid input='1'></seedid>
+                <fuid input='1'></fuid>
+                <farmnum input='1'></farmnum>
+                <r>1</r>
+            </params>
+            <method>POST</method>
+        </request>
+		<request>
+			<name>Havest</name>
+			<url>http://www.kaixin001.com/house/garden/havest.php</url>
+			<params>
+				<verify input='1'></verify>
+				<fuid input='1'></fuid>
+				<farmnum input='1'></farmnum>
+				<r>1</r>
+			</params>
+            <method>GET</method>
+		</request>
+		<request>
+			<name>AntiGrass</name>
+			<url>http://www.kaixin001.com/house/garden/antigrass.php</url>
+			<params>
+				<farmnum input='1'></farmnum>
+				<seedid>0</seedid>
+				<verify input='1'></verify>
+				<r>1</r>
+				<fuid input='1'></fuid>
+			</params>
+			<method>POST</method>
+		</request>
+		<request>
+			<name>AntiVermin</name>
+			<url>http://www.kaixin001.com/house/garden/antivermin.php</url>
+			<method>POST</method>
+			<params>
+				<farmnum input='1'></farmnum>
+				<seedid>0</seedid>
+				<verify input='1'></verify>
+				<r>1</r>
+				<fuid input='1'></fuid>
+			</params>
+		</request>
+        <request>
+            <name>Water</name>http://www.kaixin001.com/house/garden/water.php
+            <url>http://www.kaixin001.com/house/garden/water.php</url>
+            <params>
+                <r>1</r>
+                <fuid input='1'></fuid>
+                <farmnum input='1'></farmnum>
+                <verify input='1'></verify>
+                <seedid>0</seedid>
+            </params>
+            <method>GET</method>
+        </request>
+		<request>
+			<name>SendMark</name>
+			<url>http://www.kaixin001.com/brain/aj_send_mark.php</url>
+			<params>
+				<verify input='1'></verify>
+				<gamename input='1'></gamename>
+				<mark input='1'></mark>
+				<ac>616b7c8099e5229830792ba17426bdaa</ac>
+				<r>1</r>
+			</params>
+            <method>GET</method>
+		</request>
+		<request>
+			<name>BuySeed</name>
+			<url>http://www.kaixin001.com/house/garden/buyseed.php</url>
+			<params>
+				<num input='1'></num>
+				<verify input='1'></verify>
+				<seedid input='1'></seedid>
+			</params>
+            <method>GET</method>
+		</request>
+	</request_list>
+	<attrib_list>
+		<basic>
+			<item>farmnum</item>
+			<item>water</item>
+			<item>vermin</item>
+			<item>cropsid</item>
+			<item>fuid</item>
+			<item>status</item>
+			<item>grass</item>
+			<item>shared</item>
+		</basic>
+		<extent>
+			<item>cropsstatus</item>
+			<item>grow</item>
+			<item>totalgrow</item>
+			<item>seedid</item>
+			<item>crops</item>
+			<item>farm</item>
+		</extent>
+	</attrib_list>
+</global_conf>
