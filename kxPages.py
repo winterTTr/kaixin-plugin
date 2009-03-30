@@ -8,9 +8,10 @@ import wx
 import kxData
 import operator
 import re
+import time
+import threading
 from StringIO import StringIO
 from xml.etree import ElementTree as ET
-import threading
 
 
 class PageGarden(wx.Panel):
@@ -216,8 +217,7 @@ class ThreadDoGarden( threading.Thread ):
 
     def _check_if_exit_thread( self ):
         if self.evtStop.isSet():
-            self.OutLog( u'\n')
-            self.OutLog( u'用户终止操作\n')
+            self.OutLog( u'用户终止操作')
             if not self.isTimer :
                 self.pool.pop()
 
@@ -230,8 +230,8 @@ class ThreadDoGarden( threading.Thread ):
     def run( self ):
         self.bnStop.Enable( True )
 
-        self.OutLog( u'\n' )
-        self.OutLog( u'开始执行动作。。。\n' )
+        self.OutLog( u'\n' , addTime = False )
+        self.OutLog( u'开始执行动作。。。' )
 
         action_list = [ 
                 { 
@@ -291,23 +291,23 @@ class ThreadDoGarden( threading.Thread ):
                     continue
 
                 if analyzor == None :
-                    self.OutLog( u'\n' )
-                    self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user[1] )
+                    self.OutLog( u'\n' , addTime = False )
+                    self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user[1] , addReturn = False )
                     resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
                     sio = StringIO( resp.read() )
                     sio.seek(0)
                     #if sio.getvalue().find( u'他还没有添加本组件'.encode('cp936') ) == -1 :
                     try:
                         analyzor = ET.ElementTree( file = sio )
-                        self.OutLog( u'取得成功\n'  )
+                        self.OutLog( u'取得成功'  , addTime = False )
                         find_cailaobo =  ( analyzor.find('account/careurl').text != None )
                     except:
-                        self.OutLog( u'取得失败\n'  )
+                        self.OutLog( u'取得失败' , addTime = False )
                         break
 
                 if action['action_type'] == 'havest': 
                     if find_cailaobo:
-                        self.OutLog( u'发现菜老伯！！下次再偷 = =||\n')
+                        self.OutLog( u'发现菜老伯！！下次再偷 = =||')
                         continue
                     #else:
                     #    self.OutLog( u'没有菜老伯！！安全，安全 *_*\n')
@@ -322,15 +322,14 @@ class ThreadDoGarden( threading.Thread ):
                     if action['check']( item_root ):
                         resp = kxData.SendRequest( action['req'] , fuid = user[0] , farmnum = farmnum)
                         if isinstance( resp , type({}) ):
-                            self.OutLog( u'给[作物%2s]%s...%s\n' % ( farmnum , action['name'] ,resp['status'] ) )
+                            self.OutLog( u'给[作物%2s]%s...%s' % ( farmnum , action['name'] ,resp['status'] ) )
                         else:
-                            self.OutLog( u'给[作物%2s]%s\n' % ( farmnum , action['name'] ) )
+                            self.OutLog( u'给[作物%2s]%s' % ( farmnum , action['name'] ) )
                     #else:
                     #    self.OutLog( u'[作物%2s]不需要%s\n' % ( farmnum , action['name'] ) )
     
 
-        self.OutLog( u'\n')
-        self.OutLog( u'操作结束\n')
+        self.OutLog( u'操作结束')
         if not self.isTimer :
             self.bnStop.Enable( False )
             self.bnStart.Enable( True )
@@ -356,11 +355,11 @@ class ThreadDoGardenTimer( threading.Thread ):
         self.thread_obj.run()
         while True:
             self.panel.OutLog(u'\n')
-            self.panel.OutLog( u"等待下次操作\n")
+            self.panel.OutLog( u"等待下次操作")
             self.evtStop.wait( self.timer )
             if self.evtStop.isSet():
                 self.panel.OutLog(u'\n')
-                self.panel.OutLog(u'用户中止操作\n')
+                self.panel.OutLog(u'用户中止操作')
                 self.panel.bnStart.Enable(True)
                 return
             else:
@@ -417,8 +416,15 @@ class PageAction( wx.Panel ):
         self.cbRedo.Enable(True)
         self.tcInterval.Enable(True)
 
-    def OutLog( self , text ):
+    def OutLog( self , text , addTime = True , addReturn = True ):
+        if addTime :
+            self.tcLog.AppendText( u"[%s] " % time.strftime(u'%H:%M:%S') )
+            #self.tcLog.AppendText( u"[%s]" % time.strftime(u'%m/%d %H:%M:%S') )
+
         self.tcLog.AppendText( text )
+
+        if addReturn:
+            self.tcLog.AppendText(u'\n')
 
     def _create_items( self ):
         wx.StaticBox( self , 
