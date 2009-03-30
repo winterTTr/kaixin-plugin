@@ -264,9 +264,9 @@ class ThreadDoGarden( threading.Thread ):
                     'action_type'  : 'havest' ,
                     'check': ( 
                         lambda item_root : 
-                            item_root.find('shared').text != '1' and 
+                            item_root.find('shared') == '0' and
+                            item_root.find('cropsid').text != '0' and 
                             item_root.find('grow').text == item_root.find('totalgrow').text and
-                            item_root.find('status').text == '1' and
                             item_root.find('cropsstatus').text != '3' )   ,
                     'if_do' : kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['do'] ,
                     'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['list'] 
@@ -291,23 +291,25 @@ class ThreadDoGarden( threading.Thread ):
                     continue
 
                 if analyzor == None :
-                    self.OutLog( u'\n' , addTime = False )
+                    #self.OutLog( u'\n' , addTime = False )
                     self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user[1] , addReturn = False )
                     resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
                     sio = StringIO( resp.read() )
                     sio.seek(0)
+                    #if user[0] == 0 :
+                    #    open( '0.xml' , 'w').write( sio.getvalue() )
                     #if sio.getvalue().find( u'他还没有添加本组件'.encode('cp936') ) == -1 :
                     try:
                         analyzor = ET.ElementTree( file = sio )
-                        self.OutLog( u'取得成功'  , addTime = False )
+                        self.OutLog( u'成功'  , addTime = False )
                         find_cailaobo =  ( analyzor.find('account/careurl').text != None )
                     except:
-                        self.OutLog( u'取得失败' , addTime = False )
+                        self.OutLog( u'失败' , addTime = False )
                         break
 
                 if action['action_type'] == 'havest': 
                     if find_cailaobo:
-                        self.OutLog( u'发现菜老伯！！下次再偷 = =||')
+                        self.OutLog( u'        发现菜老伯！！下次再偷 = =||')
                         continue
                     #else:
                     #    self.OutLog( u'没有菜老伯！！安全，安全 *_*\n')
@@ -316,15 +318,17 @@ class ThreadDoGarden( threading.Thread ):
                     if self._check_if_exit_thread(): return        
                     farmnum = item_root.find('farmnum').text
                     cropsid = item_root.find('cropsid').text
-                    if cropsid == '0':
+                    status = item_root.find('status').text
+                    #if cropsid == '0':
+                    if status == '0':
                         #self.OutLog( u'[作物%2s]尚未开发\n' % ( farmnum , ) )
                         continue
                     if action['check']( item_root ):
                         resp = kxData.SendRequest( action['req'] , fuid = user[0] , farmnum = farmnum)
                         if isinstance( resp , type({}) ):
-                            self.OutLog( u'给[作物%2s]%s...%s' % ( farmnum , action['name'] ,resp['status'] ) )
+                            self.OutLog( u'        给[作物%2s]%s...%s' % ( farmnum , action['name'] ,resp['status'] ) )
                         else:
-                            self.OutLog( u'给[作物%2s]%s' % ( farmnum , action['name'] ) )
+                            self.OutLog( u'        给[作物%2s]%s' % ( farmnum , action['name'] ) )
                     #else:
                     #    self.OutLog( u'[作物%2s]不需要%s\n' % ( farmnum , action['name'] ) )
     
@@ -354,11 +358,11 @@ class ThreadDoGardenTimer( threading.Thread ):
     def run( self ):
         self.thread_obj.run()
         while True:
-            self.panel.OutLog(u'\n')
+            self.panel.OutLog(u'' , addTime = False )
             self.panel.OutLog( u"等待下次操作")
             self.evtStop.wait( self.timer )
             if self.evtStop.isSet():
-                self.panel.OutLog(u'\n')
+                self.panel.OutLog(u'' , addTime = False )
                 self.panel.OutLog(u'用户中止操作')
                 self.panel.bnStart.Enable(True)
                 return
@@ -448,7 +452,7 @@ class PageAction( wx.Panel ):
 
         self.tcInterval = wx.TextCtrl( self , 
                 pos = ( 30 , 100 ) , 
-                value = '5' , 
+                value = '20' , 
                 size = ( 150 , 20  ))
 
         self.bnStart = wx.Button( self , 
