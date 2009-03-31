@@ -14,6 +14,13 @@ from StringIO import StringIO
 from xml.etree import ElementTree as ET
 
 
+class PageActionOnTime(wx.Panel):
+	pass
+
+class PageAbout( wx.Panel ):
+	pass
+
+
 class PageGarden(wx.Panel):
     __id_splitter__ = re.compile( r'\[(?P<id>.*)\]')
     __can_type__ = [ 
