@@ -226,6 +226,27 @@ class ThreadDoGarden( threading.Thread ):
         else:
             return False
 
+    def _check_havest( self , item_root ):
+        _text_getter = lambda tag : item_root.find(tag).text
+
+        if _text_getter('shared') =='1' : return False
+        if _text_getter('cropsid') =='0' : return False
+        if _text_getter('grow') != _text_getter('totalgrow'): return False
+        if _text_getter('cropsstatus') =='3' : return False
+
+        crops = _text_getter('crops')
+        if crops.find(u'已偷光') != -1 : return False
+        if crops.find(u'已枯死') != -1 : return False
+
+        searchRet = re.search(u'剩余：(?P<farmnum>\d+)' , crops )
+        if searchRet :
+            return searchRet.group('farmnum') != 0
+        else:
+            self.OutLog( u"%s" % crops )
+            return True
+
+        return True
+
         
     def run( self ):
         self.bnStop.Enable( True )
@@ -262,12 +283,7 @@ class ThreadDoGarden( threading.Thread ):
                     'name' : u'收获' , 
                     'req'  : 'Havest' , 
                     'action_type'  : 'havest' ,
-                    'check': ( 
-                        lambda item_root : 
-                            item_root.find('shared').text == '0' and
-                            item_root.find('cropsid').text != '0' and 
-                            item_root.find('grow').text == item_root.find('totalgrow').text and
-                            item_root.find('cropsstatus').text != '3' )   ,
+                    'check': self._check_havest ,
                     'if_do' : kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['do'] ,
                     'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['list'] 
                 } ]
@@ -296,7 +312,7 @@ class ThreadDoGarden( threading.Thread ):
                     resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
                     sio = StringIO( resp.read() )
                     sio.seek(0)
-                    #if user[0] == 412979 :
+                    #if user[0] == 10427745 :
                     #    open( '0.xml' , 'w').write( sio.getvalue() )
                     #if sio.getvalue().find( u'他还没有添加本组件'.encode('cp936') ) == -1 :
                     try:
