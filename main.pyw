@@ -10,7 +10,7 @@ import kxData
 from StringIO import StringIO
 from xml.etree import ElementTree as ET
 
-from kxPages import PageGarden , PageAction
+from kxPages import PageGarden , PageAction ,PageActionOnTime , PageAbout
 
 class KxPluginFrame( wx.Frame ):
     def __init__( self  ):
@@ -66,10 +66,14 @@ class KxPluginFrame( wx.Frame ):
         #self.notebook = wx.aui.AuiNotebook( self.panel )
         self.page_garden = PageGarden( self.notebook )
         self.page_action = PageAction( self.notebook )
+        self.page_do_ontime = PageActionOnTime( self.notebook)
+        self.page_about = PageAbout( self.notebook)
 
         # setup item
         self.notebook.AddPage( self.page_garden , u"开心花园")
-        self.notebook.AddPage( self.page_action , u"执行")
+        self.notebook.AddPage( self.page_action , u"运行")
+        self.notebook.AddPage( self.page_do_ontime , u"定时收获")
+        self.notebook.AddPage( self.page_about , u"关于")
 
         # arrange item
         sizer = wx.BoxSizer()
