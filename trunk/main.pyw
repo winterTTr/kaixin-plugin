@@ -4,7 +4,8 @@ __version__ = '$Revision$'[11:-2]
 __author__ = 'winterTTr<winterTTr@gmail.com>'
 __svnid__ = '$Id$'
 
-import wx , sys , re , os
+import wx , sys , re , os 
+#import wx.aui
 import kxData
 from StringIO import StringIO
 from xml.etree import ElementTree as ET
@@ -62,6 +63,7 @@ class KxPluginFrame( wx.Frame ):
 
         self.panel = wx.Panel( self )
         self.notebook = wx.Notebook( self.panel )
+        #self.notebook = wx.aui.AuiNotebook( self.panel )
         self.page_garden = PageGarden( self.notebook )
         self.page_action = PageAction( self.notebook )
 
