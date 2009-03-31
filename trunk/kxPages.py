@@ -264,7 +264,7 @@ class ThreadDoGarden( threading.Thread ):
                     'action_type'  : 'havest' ,
                     'check': ( 
                         lambda item_root : 
-                            item_root.find('shared') == '0' and
+                            item_root.find('shared').text == '0' and
                             item_root.find('cropsid').text != '0' and 
                             item_root.find('grow').text == item_root.find('totalgrow').text and
                             item_root.find('cropsstatus').text != '3' )   ,
@@ -296,7 +296,7 @@ class ThreadDoGarden( threading.Thread ):
                     resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
                     sio = StringIO( resp.read() )
                     sio.seek(0)
-                    #if user[0] == 0 :
+                    #if user[0] == 412979 :
                     #    open( '0.xml' , 'w').write( sio.getvalue() )
                     #if sio.getvalue().find( u'他还没有添加本组件'.encode('cp936') ) == -1 :
                     try:
