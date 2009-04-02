@@ -5,6 +5,7 @@ __author__ = 'winterTTr<winterTTr@gmail.com>'
 __svnid__ = '$Id$'
 
 import wx
+import wx.html
 import kxData
 import operator
 import re
@@ -18,8 +19,20 @@ class PageActionOnTime(wx.Panel):
 	pass
 
 class PageAbout( wx.Panel ):
-	pass
+    def __init__( self , parent ):
+        wx.Panel.__init__( self, parent )
+        self.html = wx.html.HtmlWindow( self )
+        self.html.SetPage( u"""
+        <html>
+        <body>
+        <h1 align="center"><font family="SimHei" size="6pt" color="#009900">开心菜园外挂 1.2</font></h1>
+        </body>
+        </html>
+        """)
 
+        self.sizer = wx.BoxSizer()
+        self.sizer.Add( self.html , 1 , wx.EXPAND | wx.ALL, 20 )
+        self.SetSizer( self.sizer )
 
 class PageGarden(wx.Panel):
     __id_splitter__ = re.compile( r'\[(?P<id>.*)\]')
@@ -244,6 +257,7 @@ class ThreadDoGarden( threading.Thread ):
         crops = _text_getter('crops')
         if crops.find(u'已偷光') != -1 : return False
         if crops.find(u'已枯死') != -1 : return False
+        if crops.find(u'即将成熟') != -1 : return False
 
         searchRet = re.search(u'剩余：(?P<farmnum>\d+)' , crops )
         if searchRet :
