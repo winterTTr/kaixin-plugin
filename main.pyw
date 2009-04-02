@@ -19,7 +19,7 @@ class KxPluginFrame( wx.Frame ):
                 parent = None , 
                 id = -1 , 
                 style = wx.CAPTION | wx.CLOSE_BOX | wx.SYSTEM_MENU | wx.MINIMIZE_BOX, 
-                title = u'开心花园外挂 by winterTTr' ,
+                title = u'开心网外挂 by winterTTr' ,
                 size = ( 800 , 600 ) )
 
         ### ========== Init Inner Data
@@ -57,7 +57,7 @@ class KxPluginFrame( wx.Frame ):
         self.tbicon = wx.TaskBarIcon()
         icon = wx.Icon("favicon.ico", wx.BITMAP_TYPE_ICO)
         self.SetIcon( icon )
-        self.tbicon.SetIcon( icon , u'开心花园外挂')
+        self.tbicon.SetIcon( icon , u'开心网外挂')
 
 
 

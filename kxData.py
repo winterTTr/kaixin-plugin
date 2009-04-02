@@ -57,6 +57,44 @@ def UnicodeFromStr( s ):
     global global_unicode_convert
     return global_unicode_convert.sub( ( lambda mo : unichr( int(mo.group('uchar') ,16 ) ) ), s )
 
+class kxConfigDB:
+    __file_name__ = 'kxConfig.db'
+    def __init__( self , db_file = None ):
+        self.db_file = db_file if db_file else self.__file_name__
+
+        is_file_exist =  os.path.exists( self.db_file )
+        self.con = sqlite3.connect( self.db_file )
+
+        if not is_file_exist:
+            self._create_tables()
+
+    def _create_tables( self ):
+        cur = self.con.cursor()
+        cur.executescript("""
+                CREATE TABLE account 
+                ( 
+                id INTEGER NOT NULL PRIMARY KEY , 
+                email TEXT UNIQUE, 
+                password TEXT);
+
+                CREATE TABLE config  
+                ( 
+                uid INTEGER , 
+                aid INTEGER ,
+                real_name TEXT , 
+                real_name_unsafe TEXT ,
+                water INTEGER ,
+                antigrass INTEGER , 
+                antivermin INTEGER , 
+                harvest INTEGER 
+                );
+                """)
+        self.con.commit()
+
+    def __del__(self):
+        self.con.commit()
+        self.con.close()
+
 class kxFriendsList:
     __file_name__ = 'friendslist.xml'
     __xml_index__ = [ 'id' , 'real_name' , 'real_name_unsafe' ]
