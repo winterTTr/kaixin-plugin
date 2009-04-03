@@ -84,7 +84,7 @@
             <method>POST</method>
         </request>
 		<request>
-			<name>Havest</name>
+			<name>Harvest</name>
 			<url>http://www.kaixin001.com/house/garden/havest.php</url>
 			<params>
 				<verify input='1'></verify>
