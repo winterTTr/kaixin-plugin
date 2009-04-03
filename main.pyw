@@ -43,14 +43,14 @@ class KxPluginFrame( wx.Frame ):
                     '',
                     self)
         if email == '' or passwd == '':
-            wx.MessageDialog( self, u"未输入用户名或者密码！" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
+            wx.MessageDialog( self, u"无效的用户名或者密码！" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
             sys.exit(1)
         ## init configure
-        kxData.global_local_config_info['RequestInfo'].loadFromFile()
-        kxData.global_local_config_info['SettingsInfo'].loadFromFile()
-        kxData.global_network_operator.login( 
-                email = email ,
-                passwd = passwd)
+        kxData.global_request_info_set.loadFromFile()
+        #kxData.global_local_config_info['SettingsInfo'].loadFromFile()
+        db = kxData.kxConfigDB()
+        db.SetAccount( email = email , password = passwd )
+        db.UpdateUserInfo( email = email )
 
         ### ========== Init UI
         # create item
@@ -96,9 +96,6 @@ class KxPluginFrame( wx.Frame ):
 
     def on_close( self , event ):
         # Logout
-        kxData.global_local_config_info['SettingsInfo'].UpdateToFile()
-        kxData.global_network_operator.friends_list.UpdateToFile()
-        kxData.global_network_operator.logout()
         self.tbicon.Destroy()
         self.Destroy()
 
