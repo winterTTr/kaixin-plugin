@@ -46,5 +46,5 @@ class PHHavest( KxPacketHandler ):
 
 
 kxPacketHandler_map = {
-        'Havest': PHHavest , 
+        'Harvest': PHHavest , 
         'None'  : None }

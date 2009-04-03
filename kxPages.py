@@ -10,9 +10,8 @@ import kxData
 import operator
 import re
 import time
-import threading
-from StringIO import StringIO
 from xml.etree import ElementTree as ET
+from kxThread import ThreadDoGarden , ThreadDoGardenTimer
 
 
 class PageActionOnTime(wx.Panel):
@@ -25,7 +24,7 @@ class PageAbout( wx.Panel ):
         self.html.SetPage( u"""
         <html>
         <body>
-        <h1 align="center"><font family="SimHei" size="6pt" color="#009900">开心菜园外挂 1.2</font></h1>
+        <h1 align="center"><font family="SimHei" size="6pt" color="#009900">开心菜园外挂 2.0</font></h1>
         </body>
         </html>
         """)
@@ -42,9 +41,8 @@ class PageGarden(wx.Panel):
     def __init__( self  ,parent ):
         wx.Panel.__init__( self , parent )
 
-        self.fl = kxData.global_network_operator.friends_list.GetList()
-        self.si = kxData.global_local_config_info['SettingsInfo'].gardenInfo
-        self.tags = kxData.global_local_config_info['SettingsInfo'].__garden_tags__
+        self.setting = kxData.FarmSettingsInfoSet( aid = 1 )
+        self.tags = self.setting.__garden_tags__
 
         self._create_items()
         self.chAction.SetSelection( 0 )
@@ -73,7 +71,7 @@ class PageGarden(wx.Panel):
 
         sel_string = self.lbAllUser.GetString( sel )
         id = int ( self.__id_splitter__.search( sel_string ).group('id') )
-        self.si[self.tags[ self.chAction.GetSelection() ][1] ]['list'].append( id )
+        self.setting.SetActionPerUser( self.tags[ self.chAction.GetSelection() ][1] , id , 1 )
 
         self.lbAllUser.Delete( sel )
         self.lbTargetUser.Append( sel_string )
@@ -86,9 +84,7 @@ class PageGarden(wx.Panel):
             wx.MessageDialog( self, u"全部用户已经添加" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
             return
 
-        for x in user_list:
-            id = int ( self.__id_splitter__.search( x ).group('id') )
-            self.si[self.tags[ self.chAction.GetSelection() ][1] ]['list'].append( id )
+        self.setting.SetActionAll( self.tags[ self.chAction.GetSelection() ][1] , 1 )
 
         self.UpdateUI( self.tags[ self.chAction.GetSelection() ][1] )
 
@@ -101,7 +97,7 @@ class PageGarden(wx.Panel):
 
         sel_string = self.lbTargetUser.GetString( sel )
         id = int ( self.__id_splitter__.search( sel_string ).group('id') )
-        self.si[self.tags[ self.chAction.GetSelection() ][1] ]['list'].remove( id )
+        self.setting.SetActionPerUser( self.tags[ self.chAction.GetSelection() ][1] , id , 0 )
 
         self.lbTargetUser.Delete( sel )
         self.lbAllUser.Append( sel_string )
@@ -113,7 +109,7 @@ class PageGarden(wx.Panel):
             wx.MessageDialog( self, u"全部用户已经删除" , u"警告" , wx.OK |wx.ICON_EXCLAMATION ).ShowModal()
             return
 
-        self.si[self.tags[ self.chAction.GetSelection() ][1] ]['list'] = []
+        self.setting.SetActionAll( self.tags[ self.chAction.GetSelection() ][1] , 0 )
         self.UpdateUI( self.tags[ self.chAction.GetSelection() ][1] )
 
 
@@ -121,10 +117,10 @@ class PageGarden(wx.Panel):
         self.UpdateUI( self.tags[ self.chAction.GetSelection() ][1] )
 
     def OnCanTypeChange( self , event ): 
-        self.si[self.tags[ self.chAction.GetSelection() ][1]]['do'] = self.chCan.GetSelection()
+        self.setting.SetIfAction( self.tags[ self.chAction.GetSelection() ][1] , self.chCan.GetSelection() )
 
     def UpdateUI( self , tag ):
-        self.chCan.SetSelection ( self.si[tag]['do'] )
+        self.chCan.SetSelection ( self.setting.GetIfAction(tag) )
         self.UpdateList( * self._makeTargetList( tag ) )
 
     def UpdateList( self , ll , rl ):
@@ -132,10 +128,11 @@ class PageGarden(wx.Panel):
         self.lbTargetUser.SetItems( rl )
 
     def _makeTargetList( self , tag ):
-        target_list = self.si[tag]['list']
+        target_list = self.setting.GetDoUser( tag )
+        all_list = self.setting.db.GetUserList( aid = 1 )
         ret_ll = []
         ret_rl = []
-        for x in self.fl:
+        for x in all_list:
             item = u"%s[%d]" % ( x[1] , x[0])
             if x[0] in target_list:
                 ret_rl.append( item )
@@ -220,201 +217,6 @@ class PageGarden(wx.Panel):
                 label = u"<<< 删除所有" ,
                 pos = ( 450 , 310 ) , 
                 size = ( 90 , 22  ) )
-
-
-class ThreadDoGarden( threading.Thread ):
-    def __init__( self , panel , if_timer_thread = False ):
-        threading.Thread.__init__( self )
-        self.OutLog = panel.OutLog
-        self.bnStart = panel.bnStart
-        self.bnStop = panel.bnStop
-        self.pool = panel.thread_do_garden
-        self.evtStop = threading.Event()
-        self.evtStop.clear()
-        self.isTimer = if_timer_thread
-        self.cbRedo = panel.cbRedo
-        self.tcInterval = panel.tcInterval
-
-    def _check_if_exit_thread( self ):
-        if self.evtStop.isSet():
-            self.OutLog( u'用户终止操作')
-            if not self.isTimer :
-                self.pool.pop()
-
-            self.bnStart.Enable( True )
-            return True
-        else:
-            return False
-
-    def _check_havest( self , item_root ):
-        _text_getter = lambda tag : item_root.find(tag).text
-
-        if _text_getter('shared') =='1' : return False
-        if _text_getter('cropsid') =='0' : return False
-        if _text_getter('grow') != _text_getter('totalgrow'): return False
-        if _text_getter('cropsstatus') =='3' : return False
-
-        crops = _text_getter('crops')
-        if crops.find(u'已偷光') != -1 : return False
-        if crops.find(u'已枯死') != -1 : return False
-        if crops.find(u'即将成熟') != -1 : return False
-
-        searchRet = re.search(u'剩余：(?P<farmnum>\d+)' , crops )
-        if searchRet :
-            return searchRet.group('farmnum') != 0
-        else:
-            self.OutLog( u"%s" % crops )
-            return True
-
-        return True
-
-        
-    def run( self ):
-        self.bnStop.Enable( True )
-
-        self.OutLog( u'\n' , addTime = False )
-        self.OutLog( u'开始执行动作。。。' )
-
-        action_list = [ 
-                { 
-                    'name' : u'浇水' , 
-                    'req'  : 'Water' , 
-                    'action_type' : 'water' , 
-                    'check': lambda item_root : item_root.find('water').text != '5' ,
-                    'if_do': kxData.global_local_config_info['SettingsInfo'].gardenInfo['water']['do'] , 
-                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['water']['list'] 
-                } , 
-                { 
-                    'name' : u'除草' , 
-                    'req'  : 'AntiGrass' , 
-                    'action_type' : 'antigrass' , 
-                    'check': lambda item_root : item_root.find('grass').text == '1' ,
-                    'if_do': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antigrass']['do'] , 
-                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antigrass']['list']
-                } ,
-                { 
-                    'name' : u'除虫' , 
-                    'req'  : 'AntiVermin' , 
-                    'action_type' : 'antivermin' , 
-                    'check': lambda item_root : item_root.find('vermin').text == '1' ,
-                    'if_do': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antivermin']['do'] ,
-                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['antivermin']['list']
-                },
-                { 
-                    'name' : u'收获' , 
-                    'req'  : 'Havest' , 
-                    'action_type'  : 'havest' ,
-                    'check': self._check_havest ,
-                    'if_do' : kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['do'] ,
-                    'u_list': kxData.global_local_config_info['SettingsInfo'].gardenInfo['havest']['list'] 
-                } ]
-
-
-        for user in kxData.global_network_operator.friends_list.GetList():
-            if self._check_if_exit_thread(): return        
-            analyzor = None
-            find_cailaobo = False
-            for action in action_list:
-                if self._check_if_exit_thread(): return        
-
-                #self.OutLog( u'Do action [%s]\n' % action['name'] )
-
-                if action['if_do'] == 0 :
-                    #self.OutLog( u'action [%s] : close\n' % action['name'] )
-                    continue
-
-                if not ( user[0] in action['u_list'] ):
-                    #self.OutLog( u'action [%s] : user no in list\n' % action['name'] )
-                    continue
-
-                if analyzor == None :
-                    #self.OutLog( u'\n' , addTime = False )
-                    self.OutLog( u'取得[%s]家的菜园作物信息。。。' % user[1] , addReturn = False )
-                    resp = kxData.SendRequest( 'CropInfo' , fuid = user[0] )
-                    sio = StringIO( resp.read() )
-                    sio.seek(0)
-                    #if user[0] == 10427745 :
-                    #    open( '0.xml' , 'w').write( sio.getvalue() )
-                    #if sio.getvalue().find( u'他还没有添加本组件'.encode('cp936') ) == -1 :
-                    try:
-                        analyzor = ET.ElementTree( file = sio )
-                        self.OutLog( u'成功'  , addTime = False )
-                        find_cailaobo =  ( analyzor.find('account/careurl').text != None )
-                    except:
-                        self.OutLog( u'失败' , addTime = False )
-                        break
-
-                if action['action_type'] == 'havest': 
-                    if find_cailaobo:
-                        self.OutLog( u'        发现菜老伯！！下次再偷 = =||')
-                        continue
-                    #else:
-                    #    self.OutLog( u'没有菜老伯！！安全，安全 *_*\n')
-
-                for item_root in analyzor.findall('garden/item'):
-                    if self._check_if_exit_thread(): return        
-                    farmnum = item_root.find('farmnum').text
-                    cropsid = item_root.find('cropsid').text
-                    status = item_root.find('status').text
-                    #if cropsid == '0':
-                    if status == '0':
-                        #self.OutLog( u'[作物%2s]尚未开发\n' % ( farmnum , ) )
-                        continue
-                    if action['check']( item_root ):
-                        resp = kxData.SendRequest( action['req'] , fuid = user[0] , farmnum = farmnum)
-                        if isinstance( resp , type({}) ):
-                            self.OutLog( u'        给[作物%2s]%s...%s' % ( farmnum , action['name'] ,resp['status'] ) )
-                        else:
-                            self.OutLog( u'        给[作物%2s]%s' % ( farmnum , action['name'] ) )
-                    #else:
-                    #    self.OutLog( u'[作物%2s]不需要%s\n' % ( farmnum , action['name'] ) )
-    
-
-        self.OutLog( u'操作结束')
-        if not self.isTimer :
-            self.bnStop.Enable( False )
-            self.bnStart.Enable( True )
-            self.cbRedo.Enable(True)
-            self.tcInterval.Enable(True)
-            self.pool.pop()
-
-    def stop( self ):
-        self.evtStop.set()
-
-
-class ThreadDoGardenTimer( threading.Thread ):
-    def __init__( self , panel ,timer ):
-        threading.Thread.__init__( self )
-
-        self.timer = timer
-        self.evtStop = threading.Event()
-        self.evtStop.clear()
-        self.thread_obj = ThreadDoGarden( panel , True )
-        self.panel = panel
-
-    def run( self ):
-        self.thread_obj.run()
-        while True:
-            self.panel.OutLog(u'' , addTime = False )
-            self.panel.OutLog( u"等待下次操作")
-            self.evtStop.wait( self.timer )
-            if self.evtStop.isSet():
-                self.panel.OutLog(u'' , addTime = False )
-                self.panel.OutLog(u'用户中止操作')
-                self.panel.bnStart.Enable(True)
-                return
-            else:
-                self.thread_obj.run()
-                if self.thread_obj.evtStop.isSet():
-                    return
-
-    def stop( self ):
-        self.thread_obj.evtStop.set()
-        self.evtStop.set()
-        self.panel.thread_do_garden.pop()
-
-
-
 
 
 class PageAction( wx.Panel ):
