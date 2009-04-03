@@ -5,6 +5,7 @@ __author__ = 'winterTTr<winterTTr@gmail.com>'
 __svnid__ = '$Id$'
 
 import threading
+import re
 import kxData
 from StringIO import StringIO
 from xml.etree import ElementTree as ET
