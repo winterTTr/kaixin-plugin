@@ -40,6 +40,8 @@ class kxConfigDB:
         else:
             cur.execute('INSERT INTO account VALUES (NULL , ?,?,0,0,0,0)' , ( email , password) )
 
+        self.con.commit()
+
     def GetAID( self , email ):
         cur = self.con.cursor()
         cur.execute( 'SELECT id FROM account WHERE email=?' , (email,))
@@ -96,6 +98,8 @@ class kxConfigDB:
                 harvest = 0 )
 
         nwo.Logout()
+        self.con.commit()
+
 
     def _insert_user_info( self , **kwdict ):
         cur = self.con.cursor()
@@ -109,6 +113,7 @@ class kxConfigDB:
 
         cur.execute(
                 'INSERT INTO config VALUES( :uid , :aid , :real_name , :real_name_unsafe , :water , :antigrass , :antivermin , :harvest)', kwdict )
+        self.con.commit()
 
 
 
@@ -290,7 +295,6 @@ class NetworkOperator :
         self.verify = re.search( 'var g_verify = "(?P<verify>.*)";' , content ).group('verify')
 
         # getFriends List
-        #self.friends_list = kxFriendsList()
         return True
 
     def Logout( self ):
@@ -362,10 +366,12 @@ class FarmSettingsInfoSet:
     def SetActionPerUser( self , tag , uid , value ):
         cur =self.db.con.cursor()
         cur.execute( 'UPDATE config SET %s=? where aid=? and uid=? ' % tag , ( value , self.aid , uid ) )
+        self.db.con.commit()
 
     def SetActionAll( self , tag , value ):
         cur =self.db.con.cursor()
         cur.execute( 'UPDATE config SET %s=? where aid=? ' % tag , ( value , self.aid ) )
+        self.db.con.commit()
 
     def SetIfAction( self , tag , value  ):
         cur =self.db.con.cursor()
